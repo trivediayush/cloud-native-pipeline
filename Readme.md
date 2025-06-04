@@ -1,7 +1,7 @@
 Declarative Jenkins CI/CD Pipeline for Java App
 ===============================================
 
-This project demonstrates a complete end-to-end CI/CD pipeline using Jenkins Declarative Pipelines for a Java application. The pipeline is configured to automatically build, test, perform code quality analysis via SonarQube, and deploy the static web output to [Surge.sh](https://surge.sh).
+A complete end-to-end CI/CD pipeline using Jenkins Declarative Pipelines for a Java application. The pipeline is configured to automatically build, test, perform code quality analysis via SonarQube, and deploy the static web output to [Surge.sh](https://surge.sh).
 
 🛠️ Tech Stack Used
 -------------------
