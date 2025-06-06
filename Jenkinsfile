@@ -14,10 +14,11 @@ pipeline {
         }
 
         stage('Build') {
+            withEnv(['PATH+JAVA=${JAVA_HOME}/bin']) {
             steps {
-                withEnv(["JAVA_HOME=${tool 'Java 11'}", "PATH+JAVA=${tool 'Java 11'}/bin", "PATH+MAVEN=${tool 'Maven 3'}/bin"]) 
                 sh 'mvn clean compile'
             }
+        }
         }
 
         stage('Test') {
