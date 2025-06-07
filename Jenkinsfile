@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/trivediayush/jenkins-declarative-cicd-pipeline.git'
+                git url:'https://github.com/trivediayush/jenkins-declarative-cicd-pipeline.git'
             }
         }
 
