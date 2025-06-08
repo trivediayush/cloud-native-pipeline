@@ -33,7 +33,7 @@ A complete end-to-end CI/CD pipeline using Jenkins Declarative Pipelines for a J
 -------------
 
 1.  Clone the repository.
-2.  Set up Jenkins on EC2 and configure Maven, Java, and SonarQube tools.
+2.  Set up Jenkins on EC2 and configure Maven, Java, SonarQube and Surge.sh tools.
 3.  Install required plugins: Git, Maven Integration, SonarQube Scanner, Surge Deployer (via shell).
 4.  Configure SonarQube server in Jenkins global tools.
 5.  Set up credentials and install Surge CLI.
