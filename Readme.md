@@ -44,7 +44,7 @@ A complete end-to-end CI/CD pipeline using Jenkins Declarative Pipelines for a J
 
 # | Ayush Trivedi |
 
-🔗 Repository
+🔗 Repository URL
 -------------
 
 [https://github.com/trivediayush/jenkins-declarative-cicd-pipeline](https://github.com/trivediayush/jenkins-declarative-cicd-pipeline)
