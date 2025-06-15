@@ -34,6 +34,10 @@ This project demonstrates a complete CI/CD pipeline for a web application using 
 *   `aws-access-key` – AWS access key for Terraform
 *   `aws-secret-key` – AWS secret key for Terraform
 
+📝 Architecture
+---------------------------
+<img src="/images/cicd.png">
+
 🚀 Setup Instructions
 ---------------------
 
