@@ -1,8 +1,5 @@
 pipeline {
   agent any
-  environment {
-    SONAR_TOKEN = credentials('sonar-token')
-  }
   stages {
     stage('Cloning Repo.....') {
       steps {
@@ -24,11 +21,11 @@ pipeline {
     stage('Terraform Plan.....') {
         steps {
             dir('terraform') {
-                withCredentials([
+          withCredentials([
                     string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
                     ]) {
-                        sh 'terraform apply -auto-approve'
+            sh 'terraform apply -auto-approve'
                     }
             }
         }
