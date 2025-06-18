@@ -6,17 +6,12 @@ pipeline {
   stages {
     stage('Cloning Repo.....') {
       steps {
-        git 'https://github.com/your-user/jenkins-sonarqube-terraform-ci-cd.git'
+        git 'https://github.com/trivediayush/jenkins-declarative-cicd-pipeline.git'
       }
     }
     stage('Image Building.....') {
       steps {
         sh 'docker build -t demo-app ./app'
-      }
-    }
-    stage('Code Quality Checking.....') {
-      steps {
-        sh 'sonar-scanner'
       }
     }
     stage('Terraform Init.....') {
