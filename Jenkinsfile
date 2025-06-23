@@ -35,10 +35,10 @@ pipeline {
         stage('Unit Test') {
             steps {
                 dir('app') {
-                    sh '''
-                        . venv/bin/activate
-                        pytest ../tests/test_main.py
-                    '''
+                        sh '''
+                            ./venv/bin/pip install pytest
+                            ./venv/bin/python -m pytest ../tests/test_main.py
+                        '''
                 }
             }
         }
