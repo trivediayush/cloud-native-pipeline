@@ -34,8 +34,11 @@ pipeline {
 
         stage('Unit Test') {
             steps {
-                dir('tests') {
-                    sh 'pytest test_main.py'
+                dir('app') {
+                    sh '''
+                        . venv/bin/activate
+                        pytest ../tests/test_main.py
+                    '''
                 }
             }
         }
@@ -59,30 +62,50 @@ pipeline {
 
         stage('Upload Logs to S3') {
             steps {
-                sh './aws/upload-logs.sh'
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    sh './aws/upload-logs.sh'
+                }
             }
         }
 
         stage('Push Metrics') {
             steps {
-                script {
-                    def duration = currentBuild.durationString.replaceAll('[^0-9]', '')
-                    if (duration == '') { duration = '1' }
-                    sh "./aws/push-metrics.sh ${duration}"
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    script {
+                        def duration = currentBuild.durationString.replaceAll('[^0-9]', '')
+                        if (duration == '') { duration = '1' }
+                        sh "./aws/push-metrics.sh ${duration}"
+                    }
                 }
             }
         }
 
         stage('Notify') {
             steps {
-                sh './aws/send-sns.sh SUCCESS'
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+                    sh './aws/send-sns.sh SUCCESS'
+                }
             }
         }
     }
 
     post {
         failure {
-            sh './aws/send-sns.sh FAILURE'
+            withCredentials([[
+                $class: 'AmazonWebServicesCredentialsBinding',
+                credentialsId: 'aws-creds'
+            ]]) {
+                sh './aws/send-sns.sh FAILURE'
+            }
         }
     }
 }
