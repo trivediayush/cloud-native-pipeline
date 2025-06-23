@@ -4,7 +4,7 @@ pipeline {
     environment {
         S3_BUCKET = 'fullstack-cicd-bucket'
         REGION = 'eu-north-1'
-        SNS_TOPIC = 'arn:aws:sns:eu-norht-1:381112450421:flask-pipeline-alerts'
+        SNS_TOPIC = 'arn:aws:sns:eu-north-1:381112450421:flask-pipeline-alerts'
     }
 
     stages {
@@ -18,11 +18,17 @@ pipeline {
             steps {
                 dir('app') {
                     sh '''
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
-      '''
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        pip install -r requirements.txt
+                    '''
                 }
+            }
+        }
+
+        stage('Prepare Scripts') {
+            steps {
+                sh 'chmod +x aws/*.sh'
             }
         }
 
@@ -39,11 +45,6 @@ pipeline {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     sh 'sonar-scanner -Dsonar.login=$SONAR_TOKEN'
                 }
-            }
-        }
-        stage('Prepare Scripts') {
-            steps {
-                sh 'chmod +x aws/*.sh'
             }
         }
 
