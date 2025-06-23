@@ -47,9 +47,14 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                        sonar-scanner \
-                    -Dsonar.login=$SONAR_TOKEN
-                    '''
+                sonar-scanner \
+                  -Dsonar.projectKey=flask-pipeline \
+                  -Dsonar.organization=trivediayush \
+                  -Dsonar.sources=app \
+                  -Dsonar.tests=tests \
+                  -Dsonar.host.url=https://sonarcloud.io \
+                  -Dsonar.login=$SONAR_TOKEN
+            '''
                 }
             }
         }
