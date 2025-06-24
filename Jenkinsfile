@@ -34,27 +34,14 @@ pipeline {
 
         stage('Unit Test') {
             steps {
-                dir('app') {
-                        sh '''
-                            ./venv/bin/pip install pytest
-                            ./venv/bin/python -m pytest ../tests/test_main.py
-                        '''
-                }
+                sh 'python3 -m pytest tests/test_main.py'
             }
         }
 
         stage('SonarCloud') {
             steps {
                 withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    sh '''
-                sonar-scanner \
-                  -Dsonar.projectKey=flask-pipeline \
-                  -Dsonar.organization=trivediayush \
-                  -Dsonar.sources=app \
-                  -Dsonar.tests=tests \
-                  -Dsonar.host.url=https://sonarcloud.io \
-                  -Dsonar.login=$SONAR_TOKEN
-            '''
+                    sh 'sonar-scanner -Dsonar.login=$SONAR_TOKEN'
                 }
             }
         }
@@ -72,7 +59,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-creds'
+                    credentialsId: 'aws-credentials'
                 ]]) {
                     sh './aws/upload-logs.sh'
                 }
@@ -83,7 +70,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-creds'
+                    credentialsId: 'aws-credentials'
                 ]]) {
                     script {
                         def duration = currentBuild.durationString.replaceAll('[^0-9]', '')
@@ -98,7 +85,7 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-creds'
+                    credentialsId: 'aws-credentials'
                 ]]) {
                     sh './aws/send-sns.sh SUCCESS'
                 }
@@ -110,7 +97,7 @@ pipeline {
         failure {
             withCredentials([[
                 $class: 'AmazonWebServicesCredentialsBinding',
-                credentialsId: 'aws-creds'
+                credentialsId: 'aws-credentials'
             ]]) {
                 sh './aws/send-sns.sh FAILURE'
             }
