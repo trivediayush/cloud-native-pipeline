@@ -2,33 +2,32 @@ pipeline {
     agent any
 
     environment {
-        S3_BUCKET = 'fullstack-cicd-bucket'
-        REGION = 'eu-north-1'
-        SNS_TOPIC = 'arn:aws:sns:eu-north-1:381112450421:flask-pipeline-alerts'
+        SONAR_HOST_URL = 'https://sonarcloud.io'
+        SONAR_ORGANIZATION = 'trivediayush'
+        SONAR_PROJECT_KEY = 'flask-app'
+        S3_BUCKET = 'fullstack-ci-bucket'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/trivediayush/cloud-native-pipeline.git'
+                checkout scm
             }
         }
 
         stage('Install Deps') {
             steps {
-                dir('app') {
-                    sh '''
-                        python3 -m venv venv
-                        . venv/bin/activate
-                        pip install -r requirements.txt
-                    '''
-                }
+                sh '''
+                    python3 -m venv venv
+                    source venv/bin/activate
+                    pip install -r requirements.txt
+                '''
             }
         }
 
         stage('Prepare Scripts') {
             steps {
-                sh 'chmod +x aws/*.sh'
+                sh 'chmod +x aws/push-metrics.sh aws/send-sns.sh aws/upload-logs.sh'
             }
         }
 
@@ -40,54 +39,70 @@ pipeline {
 
         stage('SonarCloud') {
             steps {
-                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                    sh 'sonar-scanner -Dsonar.login=$SONAR_TOKEN'
+                withCredentials([
+                    string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')
+                ]) {
+                    sh '''
+                        sonar-scanner \
+                          -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                          -Dsonar.organization=$SONAR_ORGANIZATION \
+                          -Dsonar.host.url=$SONAR_HOST_URL \
+                          -Dsonar.login=$SONAR_TOKEN
+                    '''
                 }
             }
         }
 
         stage('Docker Build & Run') {
             steps {
-                dir('app') {
-                    sh 'docker build -t flask-app .'
-                }
-                sh 'docker run -d -p 5000:5000 flask-app'
+                sh '''
+                    docker build -t flask-app .
+                    docker run -d -p 5000:5000 --name flask-container flask-app
+                '''
             }
         }
 
         stage('Upload Logs to S3') {
             steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-credentials'
-                ]]) {
-                    sh './aws/upload-logs.sh'
+                withCredentials([
+                    string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh '''
+                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                        ./aws/upload-logs.sh $S3_BUCKET
+                    '''
                 }
             }
         }
 
         stage('Push Metrics') {
             steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-credentials'
-                ]]) {
-                    script {
-                        def duration = currentBuild.durationString.replaceAll('[^0-9]', '')
-                        if (duration == '') { duration = '1' }
-                        sh "./aws/push-metrics.sh ${duration}"
-                    }
+                withCredentials([
+                    string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh '''
+                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                        ./aws/push-metrics.sh
+                    '''
                 }
             }
         }
 
         stage('Notify') {
             steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding',
-                    credentialsId: 'aws-credentials'
-                ]]) {
-                    sh './aws/send-sns.sh SUCCESS'
+                withCredentials([
+                    string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh '''
+                        export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                        export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                        ./aws/send-sns.sh SUCCESS
+                    '''
                 }
             }
         }
@@ -95,11 +110,15 @@ pipeline {
 
     post {
         failure {
-            withCredentials([[
-                $class: 'AmazonWebServicesCredentialsBinding',
-                credentialsId: 'aws-credentials'
-            ]]) {
-                sh './aws/send-sns.sh FAILURE'
+            withCredentials([
+                string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
+                string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
+            ]) {
+                sh '''
+                    export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+                    export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    ./aws/send-sns.sh FAILURE
+                '''
             }
         }
     }
