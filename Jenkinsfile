@@ -15,11 +15,13 @@ pipeline {
             }
         }
 
-        stage('Install Deps') {
+        stage('Install Dependencies') {
             steps {
                 sh '''
+                    set -e
                     python3 -m venv venv
-                    source venv/bin/activate
+                    . venv/bin/activate
+                    pip install --upgrade pip
                     pip install -r requirements.txt
                 '''
             }
@@ -27,27 +29,32 @@ pipeline {
 
         stage('Prepare Scripts') {
             steps {
-                sh 'chmod +x aws/push-metrics.sh aws/send-sns.sh aws/upload-logs.sh'
+                sh '''
+                    chmod +x aws/*.sh
+                '''
             }
         }
 
-        stage('Unit Test') {
+        stage('Unit Tests') {
             steps {
-                sh 'python3 -m pytest tests/test_main.py'
+                sh '''
+                    set -e
+                    . venv/bin/activate
+                    python3 -m pytest tests/test_main.py
+                '''
             }
         }
 
-        stage('SonarCloud') {
+        stage('SonarCloud Analysis') {
             steps {
-                withCredentials([
-                    string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')
-                ]) {
+                withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_TOKEN')]) {
                     sh '''
+                        set -e
                         sonar-scanner \
-                          -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-                          -Dsonar.organization=$SONAR_ORGANIZATION \
-                          -Dsonar.host.url=$SONAR_HOST_URL \
-                          -Dsonar.login=$SONAR_TOKEN
+                            -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                            -Dsonar.organization=$SONAR_ORGANIZATION \
+                            -Dsonar.host.url=$SONAR_HOST_URL \
+                            -Dsonar.login=$SONAR_TOKEN
                     '''
                 }
             }
@@ -56,6 +63,8 @@ pipeline {
         stage('Docker Build & Run') {
             steps {
                 sh '''
+                    set -e
+                    docker rm -f flask-container || true
                     docker build -t flask-app .
                     docker run -d -p 5000:5000 --name flask-container flask-app
                 '''
@@ -69,8 +78,10 @@ pipeline {
                     string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
+                        set -e
                         export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                         export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                        chmod +x aws/upload-logs.sh
                         ./aws/upload-logs.sh $S3_BUCKET
                     '''
                 }
@@ -84,23 +95,27 @@ pipeline {
                     string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
+                        set -e
                         export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                         export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                        chmod +x aws/push-metrics.sh
                         ./aws/push-metrics.sh
                     '''
                 }
             }
         }
 
-        stage('Notify') {
+        stage('Notify Success') {
             steps {
                 withCredentials([
                     string(credentialsId: 'AWS_ACCESS_KEY_ID', variable: 'AWS_ACCESS_KEY_ID'),
                     string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
                 ]) {
                     sh '''
+                        set -e
                         export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                         export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                        chmod +x aws/send-sns.sh
                         ./aws/send-sns.sh SUCCESS
                     '''
                 }
@@ -115,8 +130,10 @@ pipeline {
                 string(credentialsId: 'AWS_SECRET_ACCESS_KEY', variable: 'AWS_SECRET_ACCESS_KEY')
             ]) {
                 sh '''
+                    set -e
                     export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
                     export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+                    chmod +x aws/send-sns.sh
                     ./aws/send-sns.sh FAILURE
                 '''
             }
