@@ -15,17 +15,19 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                    set -e
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
-                '''
-            }
-        }
+       stage('Install Dependencies') {
+           steps {
+               sh '''
+                set -e
+                sudo apt-get update
+                sudo apt-get install -y python3.12-venv
+                python3 -m venv venv
+                . venv/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
+            '''
+         }
+       }
 
         stage('Prepare Scripts') {
             steps {
